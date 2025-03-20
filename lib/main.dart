@@ -205,17 +205,6 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                 padding:
                     const EdgeInsets.all(16.0), // Adjust the padding as needed
                 child: ElevatedButton(
-                  onPressed: _reloadConfig,
-                  child: Text('Discard changes and reload config'),
-                  style: ButtonStyle(
-                      foregroundColor: WidgetStateProperty.all(Colors.black),
-                      backgroundColor:
-                          WidgetStateProperty.all(Colors.deepOrange)),
-                )),
-            Padding(
-                padding:
-                    const EdgeInsets.all(16.0), // Adjust the padding as needed
-                child: ElevatedButton(
                   onPressed: () => setState(() => hostConfigs.insert(0, {
                         'Host':
                             'NewHost_${DateTime.now().millisecondsSinceEpoch}'
@@ -324,11 +313,6 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                               ''),
                           child: Text('+ New Option'),
                         ),
-                        // ElevatedButton(
-                        //   onPressed: () =>
-                        //       setState(() => hostConfigs.removeAt(index)),
-                        //   child: Text('Remove Host'),
-                        // ),
                       ],
                     ),
                   );
@@ -338,6 +322,18 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                Padding(
+                    padding: const EdgeInsets.all(
+                        16.0), // Adjust the padding as needed
+                    child: ElevatedButton(
+                      onPressed: _reloadConfig,
+                      child: Text('Discard changes and reload config'),
+                      style: ButtonStyle(
+                          foregroundColor:
+                              WidgetStateProperty.all(Colors.black),
+                          backgroundColor:
+                              WidgetStateProperty.all(Colors.deepOrange)),
+                    )),
                 ElevatedButton(
                   onPressed: _previewConfig,
                   child: Text('Preview Config'),

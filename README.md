@@ -1,16 +1,9 @@
 # ssh_config
 
-A new Flutter project.
+This app provides a visual interface for editing a SSH config file.  
 
-## Getting Started
+Browse for your config file (~/.ssh/config)
 
-This project is a starting point for a Flutter application.
+Add named hosts and provide the SSH options that should be used for each
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Preview or save config when finished

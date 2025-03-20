@@ -73,6 +73,15 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
     }
   }
 
+  void _reloadConfig() async {
+    if (configPath == null) return;
+    File configFile = File(configPath!);
+    if (await configFile.exists()) {
+      List<String> lines = await configFile.readAsLines();
+      _parseConfig(lines);
+    }
+  }
+
   List<Map<String, dynamic>> _filteredHosts() {
     String query = _searchController.text.toLowerCase();
     if (query.isEmpty) {
@@ -192,12 +201,27 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
               child: Text('Select SSH Config File'),
             ),
             if (configPath != null) Text('Selected File: $configPath'),
-            ElevatedButton(
-              onPressed: () => setState(() => hostConfigs.insert(0, {
-                    'Host': 'NewHost_${DateTime.now().millisecondsSinceEpoch}'
-                  })),
-              child: Text('+ Add New Host'),
-            ),
+            Padding(
+                padding:
+                    const EdgeInsets.all(16.0), // Adjust the padding as needed
+                child: ElevatedButton(
+                  onPressed: _reloadConfig,
+                  child: Text('Discard changes and reload config'),
+                  style: ButtonStyle(
+                      foregroundColor: WidgetStateProperty.all(Colors.black),
+                      backgroundColor:
+                          WidgetStateProperty.all(Colors.deepOrange)),
+                )),
+            Padding(
+                padding:
+                    const EdgeInsets.all(16.0), // Adjust the padding as needed
+                child: ElevatedButton(
+                  onPressed: () => setState(() => hostConfigs.insert(0, {
+                        'Host':
+                            'NewHost_${DateTime.now().millisecondsSinceEpoch}'
+                      })),
+                  child: Text('+ Add New Host'),
+                )),
             TextField(
               controller: _searchController,
               decoration:
@@ -219,14 +243,30 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                   return Card(
                     key: ValueKey(host['Host']),
                     child: ExpansionTile(
-                      title: TextField(
-                        onChanged: (value) =>
-                            hostConfigs[index]['Host'] = value,
-                        controller: TextEditingController(text: host['Host']),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Host',
-                        ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              onChanged: (value) =>
+                                  hostConfigs[index]['Host'] = value,
+                              controller:
+                                  TextEditingController(text: host['Host']),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Host',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              // Handle delete action
+                              setState(() {
+                                hostConfigs.removeAt(index);
+                              });
+                            },
+                          ),
+                        ],
                       ),
                       children: [
                         ...host.entries
@@ -284,11 +324,11 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                               ''),
                           child: Text('+ New Option'),
                         ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              setState(() => hostConfigs.removeAt(index)),
-                          child: Text('Remove Host'),
-                        ),
+                        // ElevatedButton(
+                        //   onPressed: () =>
+                        //       setState(() => hostConfigs.removeAt(index)),
+                        //   child: Text('Remove Host'),
+                        // ),
                       ],
                     ),
                   );

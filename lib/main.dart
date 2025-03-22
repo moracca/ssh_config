@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+// not currently used
+// import 'package:dropdown_search/dropdown_search.dart';
 
 void main() {
   runApp(SSHEditorApp());
@@ -28,22 +30,58 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
   Map<String, dynamic> globalOptions = {};
   List<Map<String, dynamic>> hostConfigs = [];
   TextEditingController _searchController = TextEditingController();
+  List<bool> expandedStates = [];
 
   List<String> sshOptions = [
-    'HostName',
-    'User',
-    'Port',
-    'IdentityFile',
-    'PasswordAuthentication',
-    'PubkeyAuthentication',
-    'StrictHostKeyChecking',
-    'ProxyCommand',
-    'ProxyJump',
-    'ConnectTimeout',
-    'Compression',
-    'LocalForward',
-    'RemoteForward',
-    'ForwardX11'
+    // Basic Options
+    "HostName",
+    "User",
+    "Port",
+    // authentication options
+    "IdentityFile",
+    "PasswordAuthentication",
+    "PubkeyAuthentication",
+    "StrictHostKeyChecking",
+    // Proxy options
+    "ProxyCommand",
+    "ProxyJump",
+    "ForwardAgent",
+    // Connection behavior
+    "ConnectTimeout",
+    "ServerAliveInterval",
+    "ServerAliveCountMax",
+    "Compression",
+    "ControlMaster",
+    "ControlPath",
+    "ControlPersist",
+    // Port forwarding"
+    "LocalForward",
+    "RemoteForward",
+    "DynamicForward",
+    // X11 Forwarding
+    "ForwardX11",
+    "ForwardX11Trusted",
+    // Host-specific options
+    "SendEnv",
+    "SetEnv",
+    "LogLevel",
+    // Other stuff
+    "UserKnownHostsFile",
+    "BatchMode",
+    "CheckHostIP",
+    "AddressFamily",
+    "BindAddress",
+    "GlobalKnownHostsFile",
+    "HostKeyAlgorithms",
+    "KbdInteractiveAuthentication",
+    "KbdInteractiveDevices",
+    "MACs",
+    "PreferredAuthentications",
+    "Protocol",
+    "RekeyLimit",
+    "VerifyHostKeyDNS",
+    "VisualHostKey",
+    "XAuthLocation"
   ];
 
   void _selectConfigFile() async {
@@ -74,6 +112,7 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
   }
 
   void _reloadConfig() async {
+    expandedStates.clear();
     if (configPath == null) return;
     File configFile = File(configPath!);
     if (await configFile.exists()) {
@@ -97,6 +136,8 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
   void _parseConfig(List<String> lines) {
     globalOptions.clear();
     hostConfigs.clear();
+    expandedStates.clear();
+
     Map<String, dynamic> currentHost = {};
     String? currentHostName;
 
@@ -108,6 +149,7 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
       if (parts[0] == 'Host') {
         if (currentHostName != null) {
           hostConfigs.add({'Host': currentHostName, ...currentHost});
+          expandedStates.add(false);
         }
         currentHostName = parts[1];
         currentHost = {};
@@ -121,7 +163,9 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
     }
     if (currentHostName != null) {
       hostConfigs.add({'Host': currentHostName, ...currentHost});
+      expandedStates.add(false);
     }
+
     setState(() {});
   }
 
@@ -182,6 +226,7 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
     for (var host in hostConfigs) {
       lines.add('\nHost ${host['Host']}');
       host.forEach((key, value) {
+        if (key == '' || value == '') return;
         if (key != 'Host') lines.add('  $key $value');
       });
     }
@@ -205,10 +250,12 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                 padding:
                     const EdgeInsets.all(16.0), // Adjust the padding as needed
                 child: ElevatedButton(
-                  onPressed: () => setState(() => hostConfigs.insert(0, {
-                        'Host':
-                            'NewHost_${DateTime.now().millisecondsSinceEpoch}'
-                      })),
+                  onPressed: () => setState(() {
+                    hostConfigs.insert(0, {
+                      'Host': 'NewHost_${DateTime.now().millisecondsSinceEpoch}'
+                    });
+                    expandedStates.insert(0, true); // expanded by default
+                  }),
                   child: Text('+ Add New Host'),
                 )),
             TextField(
@@ -223,7 +270,9 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                   setState(() {
                     if (newIndex > oldIndex) newIndex--;
                     final item = hostConfigs.removeAt(oldIndex);
+                    final wasExpanded = expandedStates.removeAt(oldIndex);
                     hostConfigs.insert(newIndex, item);
+                    expandedStates.insert(newIndex, wasExpanded);
                   });
                 },
                 itemCount: _filteredHosts().length,
@@ -232,6 +281,12 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                   return Card(
                     key: ValueKey(host['Host']),
                     child: ExpansionTile(
+                      initiallyExpanded: expandedStates[index],
+                      onExpansionChanged: (isExpanded) {
+                        setState(() {
+                          expandedStates[index] = isExpanded;
+                        });
+                      },
                       title: Row(
                         children: [
                           Expanded(
@@ -245,6 +300,17 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                                 labelText: 'Host',
                               ),
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.copy, color: Colors.blue),
+                            onPressed: () {
+                              // copy host to clipboard
+                              Clipboard.setData(
+                                  ClipboardData(text: host['Host']));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Copied to clipboard")),
+                              );
+                            },
                           ),
                           IconButton(
                             icon: Icon(Icons.delete, color: Colors.red),
@@ -292,11 +358,25 @@ class _SSHConfigEditorState extends State<SSHConfigEditor> {
                                     onChanged: (value) =>
                                         hostConfigs[index][entry.key] = value,
                                     controller: TextEditingController(
-                                        text: entry.value),
+                                        text: sshOptions.contains(entry.key)
+                                            ? entry.value
+                                            : ''),
                                     decoration: InputDecoration(
                                       border: OutlineInputBorder(),
                                     ),
                                   ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.copy, color: Colors.blue),
+                                  onPressed: () {
+                                    // copy host to clipboard
+                                    Clipboard.setData(ClipboardData(
+                                        text: hostConfigs[index][entry.key]));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text("Copied to clipboard")),
+                                    );
+                                  },
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
